@@ -74,6 +74,26 @@ namespace AutoRulesCopier
                     Console.WriteLine("Загрузка правил закончена.");
                     break;
                 }
+                case "-x":
+                { 
+                    var request = new RestRequest($"act_{args[1]}/adrules_library", Method.GET);
+                    request.AddQueryParameter("access_token", accessToken);
+                    request.AddQueryParameter("fields", "entity_type,evaluation_spec,execution_spec,name,schedule_spec");
+                    var response = restClient.Execute(request);
+                    var json = (JObject)JsonConvert.DeserializeObject(response.Content);
+                    foreach (var rule in json["data"])
+                    {
+                        Console.WriteLine($"Удаляем правило: {rule["name"]}");
+                        request = new RestRequest($"{rule["id"]}", Method.DELETE);
+                        request.AddQueryParameter("access_token",accessToken);
+                        var resp=restClient.Execute(request);
+                        if (resp.StatusCode!=System.Net.HttpStatusCode.OK)
+                            Console.WriteLine("Возникла проблема при удалении этого правила :-(");
+
+                    }
+                    Console.WriteLine("Удаление правил закончено.");
+                    break;
+                }
                 default:
                     ShowHelp();
                     break;
@@ -89,6 +109,8 @@ namespace AutoRulesCopier
             Console.WriteLine("Загрузка скачанных автоправил в рекламный кабинет с указанным ID:");
             Console.WriteLine("-u <ACCOUNT_ID>");
             Console.WriteLine("Примечание: при загрузке можно указать несколько ID кабинетов через запятую БЕЗ ПРОБЕЛА.");
+            Console.WriteLine("Удаление всех автоправил в рекламном кабинете с указанным ID:");
+            Console.WriteLine("-x <ACCOUNT_ID>");
         }
     }
 }
