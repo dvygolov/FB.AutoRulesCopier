@@ -1,7 +1,4 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using RestSharp;
 using System;
 
 namespace AutoRulesCopier
@@ -25,73 +22,23 @@ namespace AutoRulesCopier
                 ShowHelp();
                 return;
             }
+            var arc=new AutoRulesCopier(apiAddress,accessToken);
 
-            var restClient = new RestClient(apiAddress);
             switch (args[0])
             {
                 case "-d":
                 { 
-                    var request = new RestRequest($"act_{args[1]}/adrules_library", Method.GET);
-                    request.AddQueryParameter("access_token", accessToken);
-                    request.AddQueryParameter("fields", "entity_type,evaluation_spec,execution_spec,name,schedule_spec");
-                    var response = restClient.Execute(request);
-                    var json = (JObject)JsonConvert.DeserializeObject(response.Content);
-                    foreach (var rule in json["data"])
-                    {
-                        Console.WriteLine($"Найдено правило: {rule["name"]}");
-                    }
-                    System.IO.File.WriteAllText("rules.json", response.Content);
-                    Console.WriteLine("Скачивание правил закончено.");
+                    arc.Download(args[1]);
                     break;
                 }
                 case "-u":
                 {
-                    if (!System.IO.File.Exists("rules.json"))
-                    {
-                        Console.WriteLine("Файл с правилами не существует! Сначала скачайте правила!");
-                        return;
-                    }
-                    var jsonTxt = System.IO.File.ReadAllText("rules.json");
-                    var json = (JObject)JsonConvert.DeserializeObject(jsonTxt);
-                    var accSplit = args[1].Split(',');
-                    foreach (var acc in accSplit)
-                    {
-                        foreach (var rule in json["data"])
-                        {
-                            var req = new RestRequest($"act_{acc}/adrules_library", Method.POST);
-                            req.AddParameter("access_token", accessToken);
-                            req.AddParameter("name", rule["name"]);
-                            req.AddParameter("schedule_spec", rule["schedule_spec"]);
-                            req.AddParameter("evaluation_spec", rule["evaluation_spec"]);
-                            req.AddParameter("execution_spec", rule["execution_spec"]);
-                            var resp = restClient.Execute(req);
-                            if (resp.StatusCode == System.Net.HttpStatusCode.OK)
-                                Console.WriteLine($"Загрузили правило {rule["name"]} в аккаунт {acc}");
-                            else
-                                Console.WriteLine($"Не смогли загрузить правило {rule["name"]} в аккаунт {acc}");
-                        }
-                    }
-                    Console.WriteLine("Загрузка правил закончена.");
+                    arc.Upload(args[1]);
                     break;
                 }
                 case "-x":
                 { 
-                    var request = new RestRequest($"act_{args[1]}/adrules_library", Method.GET);
-                    request.AddQueryParameter("access_token", accessToken);
-                    request.AddQueryParameter("fields", "entity_type,evaluation_spec,execution_spec,name,schedule_spec");
-                    var response = restClient.Execute(request);
-                    var json = (JObject)JsonConvert.DeserializeObject(response.Content);
-                    foreach (var rule in json["data"])
-                    {
-                        Console.WriteLine($"Удаляем правило: {rule["name"]}");
-                        request = new RestRequest($"{rule["id"]}", Method.DELETE);
-                        request.AddQueryParameter("access_token",accessToken);
-                        var resp=restClient.Execute(request);
-                        if (resp.StatusCode!=System.Net.HttpStatusCode.OK)
-                            Console.WriteLine("Возникла проблема при удалении этого правила :-(");
-
-                    }
-                    Console.WriteLine("Удаление правил закончено.");
+                    arc.Clear(args[1]);
                     break;
                 }
                 default:
