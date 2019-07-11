@@ -44,6 +44,9 @@ namespace AutoRulesCopier
                 Console.WriteLine("Файл с правилами не существует! Сначала скачайте правила!");
                 return;
             }
+            Console.WriteLine("При загрузке новых автоправил, вероятно, надо почистить старые?");
+            Clear(acc);
+
             var jsonTxt = System.IO.File.ReadAllText("rules.json");
             var json = (JObject)JsonConvert.DeserializeObject(jsonTxt);
             var accSplit = acc.Split(',');
@@ -69,6 +72,10 @@ namespace AutoRulesCopier
 
         public void Clear(string acc)
         {
+            Console.Write($"Вы действительно хотите удалить все автоправила в аккаунте {acc}?(Y/N)");
+            var answer= Console.ReadKey();
+            Console.WriteLine();
+            if (answer.KeyChar!='y'&&answer.KeyChar!='Y') return;
             var request = new RestRequest($"act_{acc}/adrules_library", Method.GET);
             request.AddQueryParameter("access_token", _accessToken);
             request.AddQueryParameter("fields", "entity_type,evaluation_spec,execution_spec,name,schedule_spec");
