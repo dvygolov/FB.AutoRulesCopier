@@ -46,15 +46,14 @@ namespace AutoRulesCopier
                 Console.WriteLine("Файл с правилами не существует! Сначала скачайте правила!");
                 return;
             }
-            Console.WriteLine("При загрузке новых автоправил, вероятно, надо почистить старые?");
-            Clear(acc);
-
+            
             var jsonTxt = System.IO.File.ReadAllText("rules.json");
             var json = (JObject)JsonConvert.DeserializeObject(jsonTxt);
             ErrorChecker.HasErrorsInResponse(json,true);
             var accSplit = acc.Split(',');
             foreach (var a in accSplit)
             {
+				Clear(a);
                 foreach (var rule in json["data"])
                 {
                     var req = new RestRequest($"act_{a}/adrules_library", Method.POST);
