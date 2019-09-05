@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using RestSharp;
 using System;
+using System.Linq;
 
 namespace AutoRulesCopier
 {
@@ -23,6 +24,7 @@ namespace AutoRulesCopier
             request.AddQueryParameter("fields", "entity_type,evaluation_spec,execution_spec,name,schedule_spec");
             var response = _restClient.Execute(request);
             var json = (JObject)JsonConvert.DeserializeObject(response.Content);
+            ErrorChecker.HasErrorsInResponse(json,true);
             if (!string.IsNullOrEmpty(json["error"]?["message"].ToString()))
             {
                 Console.WriteLine(
@@ -49,6 +51,7 @@ namespace AutoRulesCopier
 
             var jsonTxt = System.IO.File.ReadAllText("rules.json");
             var json = (JObject)JsonConvert.DeserializeObject(jsonTxt);
+            ErrorChecker.HasErrorsInResponse(json,true);
             var accSplit = acc.Split(',');
             foreach (var a in accSplit)
             {
@@ -81,15 +84,19 @@ namespace AutoRulesCopier
             request.AddQueryParameter("fields", "entity_type,evaluation_spec,execution_spec,name,schedule_spec");
             var response = _restClient.Execute(request);
             var json = (JObject)JsonConvert.DeserializeObject(response.Content);
-            foreach (var rule in json["data"])
+            ErrorChecker.HasErrorsInResponse(json,true);
+            if (json["data"]?.Any()??false)
             {
-                Console.WriteLine($"Удаляем правило: {rule["name"]}");
-                request = new RestRequest($"{rule["id"]}", Method.DELETE);
-                request.AddQueryParameter("access_token", _accessToken);
-                var resp = _restClient.Execute(request);
-                if (resp.StatusCode != System.Net.HttpStatusCode.OK)
-                    Console.WriteLine("Возникла проблема при удалении этого правила :-(");
+                foreach (var rule in json["data"])
+                {
+                    Console.WriteLine($"Удаляем правило: {rule["name"]}");
+                    request = new RestRequest($"{rule["id"]}", Method.DELETE);
+                    request.AddQueryParameter("access_token", _accessToken);
+                    var resp = _restClient.Execute(request);
+                    if (resp.StatusCode != System.Net.HttpStatusCode.OK)
+                        Console.WriteLine("Возникла проблема при удалении этого правила :-(");
 
+                }
             }
             Console.WriteLine("Удаление правил закончено.");
         }
