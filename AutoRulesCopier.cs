@@ -81,7 +81,7 @@ namespace AutoRulesCopier
             if (answer.KeyChar!='y'&&answer.KeyChar!='Y') return;
             var request = new RestRequest($"act_{acc}/adrules_library", Method.GET);
             request.AddQueryParameter("access_token", _accessToken);
-            request.AddQueryParameter("fields", "entity_type,evaluation_spec,execution_spec,name,schedule_spec");
+            request.AddQueryParameter("fields", "name");
             var response = _restClient.Execute(request);
             var json = (JObject)JsonConvert.DeserializeObject(response.Content);
             ErrorChecker.HasErrorsInResponse(json,true);
