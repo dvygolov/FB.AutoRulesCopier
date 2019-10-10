@@ -19,8 +19,14 @@ namespace AutoRulesCopier
         {
             var request = new RestRequest($"act_{acc}/adrules_library", Method.GET);
             request.AddQueryParameter("fields", "entity_type,evaluation_spec,execution_spec,name,schedule_spec");
-            var json= await _re.ExecuteRequestAsync(request);
-            ErrorChecker.HasErrorsInResponse(json,true);
+            var response = _restClient.Execute(request);
+            var json = (JObject)JsonConvert.DeserializeObject(response.Content);
+            if (!string.IsNullOrEmpty(json["error"]?["message"].ToString()))
+            {
+                Console.WriteLine(
+                    $"Ошибка при попытке выполнить запрос:{json["error"]["message"]}");
+                return;
+            }
             foreach (var rule in json["data"])
             {
                 Console.WriteLine($"Найдено правило: {rule["name"]}");
@@ -48,6 +54,7 @@ namespace AutoRulesCopier
             var accSplit = acc.Split(',');
             foreach (var a in accSplit)
             {
+				Clear(a);
                 foreach (var rule in json["data"])
                 {
                     var req = new RestRequest($"act_{a}/adrules_library", Method.POST);
