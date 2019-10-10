@@ -1,63 +1,68 @@
-﻿using Microsoft.Extensions.Configuration;
-using System;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace AutoRulesCopier
 {
     class Program
     {
-        static void Main(string[] args)
+        private const string apiAddress = "https://graph.facebook.com/v4.0/";
+        static async Task Main(string[] args)
         {
-            IConfiguration config = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", true, true)
-                .Build();
-            var accessToken = config.GetValue<string>("access_token");
-            var apiAddress = config.GetValue<string>("fbapi_address");
-            if (string.IsNullOrEmpty(accessToken))
-            {
-                Console.WriteLine("Не указан access_token!");
-                return;
-            }
-            if (args.Length != 2)
-            {
-                ShowHelp();
-                return;
-            }
-            var arc=new AutoRulesCopier(apiAddress,accessToken);
+            Console.WriteLine("Программа для скачивания/загрузки автоправил в Facebook by Даниил Выголов.");
+            var re = GetConfiguredRequestExecutor(apiAddress);
+            var arc = new AutoRulesCopier(re);
+            var navigator = new Navigator(re);
 
-            switch (args[0])
+            var operation = Operations.None;
+            while (operation != Operations.Exit)
             {
-                case "-d":
-                { 
-                    arc.Download(args[1]);
-                    break;
-                }
-                case "-u":
+                operation = MainMenu.SelectOperation();
+
+                switch (operation)
                 {
-                    arc.Upload(args[1]);
-                    break;
+                    case Operations.DownloadRules:
+                    {
+                        var bmId = await navigator.SelectBusinessManagerAsync();
+                        var accId = await navigator.SelectAdAccountAsync(bmId, true);
+                        await arc.DownloadAsync(accId);
+                        break;
+                    }
+                    case Operations.UploadRules:
+                    {
+                        var bmId = await navigator.SelectBusinessManagerAsync();
+                        var accId = await navigator.SelectAdAccountAsync(bmId, true);
+                        await arc.UploadAsync(accId);
+                        break;
+                    }
+                    case Operations.ClearRules:
+                    {
+                        var bmId = await navigator.SelectBusinessManagerAsync();
+                        var accId = await navigator.SelectAdAccountAsync(bmId, true);
+                        await arc.ClearAsync(accId);
+                        break;
+                    }
                 }
-                case "-x":
-                { 
-                    arc.Clear(args[1]);
-                    break;
-                }
-                default:
-                    ShowHelp();
-                    break;
             }
         }
 
-        static void ShowHelp()
+        private static RequestExecutor GetConfiguredRequestExecutor(string apiAddress)
         {
-            Console.WriteLine("Программа для скачивания/загрузки автоправил в Facebook by Даниил Выголов.");
-            Console.WriteLine("Варианты запуска:");
-            Console.WriteLine("Скачивание настроенных автоправил из рекламного кабинета с указанным ID:");
-            Console.WriteLine("-d <ACCOUNT_ID>");
-            Console.WriteLine("Загрузка скачанных автоправил в рекламный кабинет с указанным ID:");
-            Console.WriteLine("-u <ACCOUNT_ID>");
-            Console.WriteLine("Примечание: при загрузке можно указать несколько ID кабинетов через запятую БЕЗ ПРОБЕЛА.");
-            Console.WriteLine("Удаление всех автоправил в рекламном кабинете с указанным ID:");
-            Console.WriteLine("-x <ACCOUNT_ID>");
+            Console.Write("Введите access token аккаунта:");
+            var ac = Console.ReadLine();
+            Console.Write("Введита ip-адрес прокси (Enter,если не нужен):");
+            var proxyAddress = Console.ReadLine();
+            if (string.IsNullOrEmpty(proxyAddress))
+            {
+                Console.WriteLine("Не используем прокси!");
+                return new RequestExecutor(apiAddress, ac);
+            }
+            Console.Write("Введите порт прокси:");
+            var proxyPort = Console.ReadLine();
+            Console.Write("Введите логин прокси:");
+            var proxyLogin = Console.ReadLine();
+            Console.Write("Введите пароль прокси:");
+            var proxyPassword = Console.ReadLine();
+            return new RequestExecutor(apiAddress, ac, proxyAddress, proxyPort, proxyLogin, proxyPassword);
         }
     }
 }
