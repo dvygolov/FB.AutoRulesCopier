@@ -19,8 +19,7 @@ namespace AutoRulesCopier
         {
             var request = new RestRequest($"act_{acc}/adrules_library", Method.GET);
             request.AddQueryParameter("fields", "entity_type,evaluation_spec,execution_spec,name,schedule_spec");
-            var response = _restClient.Execute(request);
-            var json = (JObject)JsonConvert.DeserializeObject(response.Content);
+            var json = await _re.ExecuteRequestAsync(request);
             if (!string.IsNullOrEmpty(json["error"]?["message"].ToString()))
             {
                 Console.WriteLine(
@@ -32,7 +31,7 @@ namespace AutoRulesCopier
                 Console.WriteLine($"Найдено правило: {rule["name"]}");
             }
             Console.Write("Введите имя файла для сохранения правил:");
-            var fileName=Console.ReadLine();
+            var fileName = Console.ReadLine();
             System.IO.File.WriteAllText($"{fileName}.rls", json.ToString());
             Console.WriteLine("Скачивание правил закончено.");
         }
@@ -40,21 +39,19 @@ namespace AutoRulesCopier
         public async Task UploadAsync(string acc)
         {
             Console.Write("Введите имя файла из которого будем грузить правила:");
-            var fileName=Console.ReadLine();
+            var fileName = Console.ReadLine();
             if (!System.IO.File.Exists($"{fileName}.rls"))
             {
                 Console.WriteLine("Файл с правилами не существует! Сначала скачайте правила!");
                 return;
             }
-            Console.WriteLine("При загрузке новых автоправил, вероятно, надо почистить старые?");
-            await ClearAsync(acc);
 
             var jsonTxt = System.IO.File.ReadAllText($"{fileName}.rls");
             var json = (JObject)JsonConvert.DeserializeObject(jsonTxt);
             var accSplit = acc.Split(',');
             foreach (var a in accSplit)
             {
-				Clear(a);
+                await ClearAsync(a);
                 foreach (var rule in json["data"])
                 {
                     var req = new RestRequest($"act_{a}/adrules_library", Method.POST);
@@ -62,7 +59,7 @@ namespace AutoRulesCopier
                     req.AddParameter("schedule_spec", rule["schedule_spec"]);
                     req.AddParameter("evaluation_spec", rule["evaluation_spec"]);
                     req.AddParameter("execution_spec", rule["execution_spec"]);
-                    var js=await _re.ExecuteRequestAsync(req);
+                    var js = await _re.ExecuteRequestAsync(req);
                     if (!ErrorChecker.HasErrorsInResponse(js))
                         Console.WriteLine($"Загрузили правило {rule["name"]} в аккаунт {a}");
                     else
@@ -79,13 +76,13 @@ namespace AutoRulesCopier
             Console.WriteLine();
             if (answer.KeyChar != 'y' && answer.KeyChar != 'Y') return;
             var request = new RestRequest($"act_{acc}/adrules_library", Method.GET);
-            request.AddQueryParameter("fields", "entity_type,evaluation_spec,execution_spec,name,schedule_spec");
-            var json=await _re.ExecuteRequestAsync(request);
+            request.AddQueryParameter("fields", "name");
+            var json = await _re.ExecuteRequestAsync(request);
             foreach (var rule in json["data"])
             {
                 Console.WriteLine($"Удаляем правило: {rule["name"]}");
                 request = new RestRequest($"{rule["id"]}", Method.DELETE);
-                var js=await _re.ExecuteRequestAsync(request);
+                var js = await _re.ExecuteRequestAsync(request);
                 if (ErrorChecker.HasErrorsInResponse(js))
                     Console.WriteLine("Возникла проблема при удалении этого правила :-(");
 
