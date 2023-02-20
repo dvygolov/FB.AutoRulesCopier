@@ -5,7 +5,7 @@ namespace AutoRulesCopier
 {
     class Program
     {
-        private const string apiAddress = "https://graph.facebook.com/v6.0/";
+        private const string apiAddress = "https://graph.facebook.com/v15.0/";
         static async Task Main(string[] args)
         {
             Console.WriteLine("Программа для скачивания/загрузки автоправил в Facebook by Yellow Web");
